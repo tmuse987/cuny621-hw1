@@ -76,7 +76,7 @@ ggplot(gather(mbTrain), aes(value)) +
 
 ```
 
-The plot of distributions does show fairly uniform data, but it also show the potential precense of outliers in at least two of the predictors. This is not the best way to vizualise ouliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appera to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_BATTING_BB and TEAM_FIELDING_E. We highlight these variables from the desity plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
+The plot of distributions does show fairly uniform data, but it also show the potential precense of outliers in at least two of the predictors. This is not the best way to vizualise ouliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appera to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_PITCHING_BB and TEAM_FIELDING_E. We highlight these variables from the desity plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
 
 **TEAM_PITCHING_H**
 
@@ -157,24 +157,36 @@ Again looking at the maximum we find it is unreasonably high at `r max`, which a
 
 ###2. DATA PREPARATION
 
-First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.
+First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also remove the "INDEX" column as that is not used.
 
 ```{r echo=FALSE}
-mbTrain <- mbTrain[, -which(names(mbTrain) %in% c(maxnaname))]
+mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", maxnaname))]
 ```
 
 Next task is to handle missing data in the other variables. Here, becouse the percentages of missing data are lower, we can replace missing data with the median. We prefer replacing with median instead of mean because the latter is more sensitive to outliers. So we get a clean dataset without missing values.
 
-```{r echo=FALSE}
-mbTrain$TEAM_BASERUN_CS[is.na(mbTrain$TEAM_BASERUN_CS)] <- median(mbTrain$TEAM_BASERUN_CS, na.rm=TRUE)
-mbTrain$TEAM_BATTING_SO[is.na(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_BATTING_SO, na.rm=TRUE)
-mbTrain$TEAM_BASERUN_SB[is.na(mbTrain$TEAM_BASERUN_SB)] <- median(mbTrain$TEAM_BASERUN_SB, na.rm=TRUE)
-mbTrain$TEAM_PITCHING_SO[is.na(mbTrain$TEAM_PITCHING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
+Note we also consider zeros to be missing data.  Since each row is a season of data for a given baseball team, it would be extraordinarily unlikely that any of these statistics would have zero as an actual value.  Therefore we are assuming zero is another indicator of missing value and we will transform them into a median value.
 
-sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
+```{r echo=FALSE}
+
+for(i in 2:ncol(mbTrain))
+{
+    idx <- mbTrain[i]==0 | is.na(mbTrain[i])  #find index of all rows that are zero
+    mbTrain[i][idx] <- (floor(median(mbTrain[[i]][mbTrain[[i]]!=0], na.rm = TRUE))) #remove zeros and na's from median equation
+}
+
+#don't need these rows anymore, above loop takes care of it
+# mbTrain$TEAM_BASERUN_CS[is.na(mbTrain$TEAM_BASERUN_CS)] <- median(mbTrain$TEAM_BASERUN_CS, na.rm=TRUE)
+# mbTrain$TEAM_BATTING_SO[is.na(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_BATTING_SO, na.rm=TRUE)
+# mbTrain$TEAM_BASERUN_SB[is.na(mbTrain$TEAM_BASERUN_SB)] <- median(mbTrain$TEAM_BASERUN_SB, na.rm=TRUE)
+# mbTrain$TEAM_PITCHING_SO[is.na(mbTrain$TEAM_PITCHING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
+
+
+#peter...not sure what this what attempting to accomplish??
+#sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 ```
 
-In the explratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median becouse it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case becouse these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
+In the exploratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median becouse it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case becouse these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
 
 **TEAM_PITCHING_H**
 
@@ -185,7 +197,8 @@ plot(mbTrain$TEAM_PITCHING_H)
 boxplot(mbTrain$TEAM_PITCHING_H)
 summary(mbTrain$TEAM_PITCHING_H)
 max<-summary(mbTrain$TEAM_PITCHING_H)[6]
-median<-round(summary(mbTrain$TEAM_PITCHING_H)[3],1)
+median<-
+    
 spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_H)[4]-summary(mbTrain$TEAM_PITCHING_H)[3]),0)
 ```
 
@@ -211,6 +224,16 @@ attach(mbTrain)
 ggplot(gather(mbTrain), aes(value)) +
     geom_histogram(bins = 20) +
     facet_wrap(~key, scales = "free_x")
+
+```
+
+Lastly, before we create models, lets divide data into test and training sets, with 80% for training, 20% for test.  This way we have a method to validate our models.
+
+```{r}
+set.seed(42)
+sample <- sample.int(n=nrow(mbTrain), size = floor(.80*nrow(mbTrain)),replace=F)
+train <- mbTrain[sample,]
+test <- mbTrain[-sample,]
 
 ```
 
