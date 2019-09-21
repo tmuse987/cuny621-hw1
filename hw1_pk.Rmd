@@ -155,6 +155,19 @@ spread<-round(as.numeric(summary(mbTrain$TEAM_FIELDING_E)[4]-summary(mbTrain$TEA
 
 Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. 
 
+
+
+####Correlation
+Looking at correlation of variables to number of wins provides some interesting data.  We find some correlations that make sense from what might assume with subject knowledge of base, e.g., the number of hits and number of variables both have significant positive correlation with Wins and other statistics like stolen bases, while still positive, are not so strongly related.  What is surprising though, are the pitching statistics.  We would assume that a team that allowed the opposing team more hits, would lose more games (and win less), but that is not what the data shows us.  Perhaps there are outliers swaying the correlation.
+
+Regardless, we can use some of these correlations to drive initial models later, in terms of likely fields to choose for an effective model.
+
+
+
+```{r}
+cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
+```
+
 ###2. DATA PREPARATION
 
 First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also remove the "INDEX" column as that is not used.
@@ -171,7 +184,7 @@ Note we also consider zeros to be missing data.  Since each row is a season of d
 
 for(i in 2:ncol(mbTrain))
 {
-    idx <- mbTrain[i]==0 | is.na(mbTrain[i])  #find index of all rows that are zero
+    idx <- mbTrain[i]==0 | is.na(mbTrain[i])  #find index of all rows that are zero or na
     mbTrain[i][idx] <- (floor(median(mbTrain[[i]][mbTrain[[i]]!=0], na.rm = TRUE))) #remove zeros and na's from median equation
 }
 
@@ -241,8 +254,17 @@ test <- mbTrain[-sample,]
 Combine all batting variables.
 
 ```{r}
-bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,mbTrain)
+###Note, this doesn't include TEAM_BATTING_BB (base on balls, TEAM_BATTING_H includes hits, double, triples and hr).  Also doesn't include HPB, but since so many were missing from there, doesn't matter for that.
+attach(train)
+bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,train)
 summary(bat_mod)
+plot(TARGET_WINS,residuals(bat_mod))
+abline()
+hist(bat_mod$residuals)
+qqnorm(bat_mod$residuals)
+qqline(bat_mod$residuals)
+#ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+ggplot(bat_mod, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
 **Pitching only model**
@@ -250,15 +272,61 @@ summary(bat_mod)
 Combine all pitching variables.
 
 ```{r}
-pitch_mod<-lm(TARGET_WINS~TEAM_PITCHING_H+TEAM_PITCHING_HR,mbTrain)
-summary(bat_mod)
-plot(mbTrain$TARGET_WINS+mbTrain$TEAM_PITCHING_HR,mbTrain$TEAM_PITCHING_H)
-abline(bat_mod)
-plot(mbTrain$TARGET_WINS,residuals(bat_mod))
+pitch_mod<-lm(TARGET_WINS~TEAM_PITCHING_H+TEAM_PITCHING_HR,train)
+summary(pitch_mod)
+plot(TEAM_PITCHING_HR + TEAM_PITCHING_H, TARGET_WINS)
+abline(pitch_mod)
+plot(TARGET_WINS,residuals(bat_mod))
 abline(0,0)
-hist(bat_mod$residuals)
-qqnorm(bat_mod$residuals)
-qqline(bat_mod$residuals)
+hist(pitch_mod$residuals)
+qqnorm(pitch_mod$residuals)
+qqline(pitch_mod$residuals)
+ggplot(pitch_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
+Batting Plus Fielding Plus Stolen Bases
+
+```{r}
+train$HITS_BB_ERR <- TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E
+
+hits_bb_e_mod <- lm(TARGET_WINS~ HITS_BB_ERR,train)
+summary(hits_bb_e_mod)
+plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+abline(hits_bb_e_mod)
+hist(hits_bb_e_mod$residuals)
+qqnorm(hits_bb_e_mod$residuals)
+qqline(hits_bb_e_mod$residuals)
+ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
+
+```
+```{r}
+
+train$HITS_NOHR <- TEAM_BATTING_H - TEAM_BATTING_HR
+attach(train)
+
+hits_NOHR_Mod <- lm(TARGET_WINS ~ HITS_NOHR)
+summary(hits_NOHR_Mod)
+plot(HITS_NOHR, TARGET_WINS)
+abline(hits_NOHR_Mod)
+hist(hits_NOHR_Mod$residuals)
+qqnorm(hits_NOHR_Mod$residuals)
+qqline(hits_NOHR_Mod$residuals)
+ggplot(hits_NOHR_Mod, aes(x= .fitted, y= .resid)) +geom_point()
+
+
+```
+
+```{r}
+train$HITS_BB_ERR_NOHR <- HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E
+
+hitsNoHR_bb_e_mod <- lm(TARGET_WINS~ HITS_BB_ERR_NOHR,train)
+summary(hitsNoHR_bb_e_mod)
+plot((HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+abline(hitsNoHR_bb_e_mod)
+hist(hitsNoHR_bb_e_mod$residuals)
+qqnorm(hitsNoHR_bb_e_mod$residuals)
+qqline(hitsNoHR_bb_e_mod$residuals)
+ggplot(hitsNoHR_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
 
