@@ -181,9 +181,6 @@ for(i in 2:ncol(mbTrain))
 # mbTrain$TEAM_BASERUN_SB[is.na(mbTrain$TEAM_BASERUN_SB)] <- median(mbTrain$TEAM_BASERUN_SB, na.rm=TRUE)
 # mbTrain$TEAM_PITCHING_SO[is.na(mbTrain$TEAM_PITCHING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
 
-
-#peter...not sure what this what attempting to accomplish??
-#sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 ```
 
 In the exploratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median becouse it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case becouse these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
@@ -238,6 +235,31 @@ test <- mbTrain[-sample,]
 ```
 
 ###3. BUILD MODELS
+
+**Batting only model**
+
+Combine all batting variables.
+
+```{r}
+bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,mbTrain)
+summary(bat_mod)
+```
+
+**Pitching only model**
+
+Combine all pitching variables.
+
+```{r}
+pitch_mod<-lm(TARGET_WINS~TEAM_PITCHING_H+TEAM_PITCHING_HR,mbTrain)
+summary(bat_mod)
+plot(mbTrain$TARGET_WINS+mbTrain$TEAM_PITCHING_HR,mbTrain$TEAM_PITCHING_H)
+abline(bat_mod)
+plot(mbTrain$TARGET_WINS,residuals(bat_mod))
+abline(0,0)
+hist(bat_mod$residuals)
+qqnorm(bat_mod$residuals)
+qqline(bat_mod$residuals)
+```
 
 
 ###4. SELECT MODELS
