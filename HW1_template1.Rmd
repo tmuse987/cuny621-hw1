@@ -1,0 +1,399 @@
+---
+title: "Data 621 Homework 1: Moneyball"
+author: "Tommy Jenkins, Violeta Stoyanova, Todd Weigel, Peter Kowalchuk, Eleanor R-Secoquian"
+date: "September, 2019"
+output: 
+  html_document:
+    theme: paper
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    number_sections: true
+
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(tidyr)
+library(MASS)
+library(psych)
+library(kableExtra)
+
+#setwd("l:/school/cuny/621/hw1")
+mbTrain <- read.csv("moneyball-training-data.csv")
+mbEval <- read.csv("moneyball-evaluation-data.csv")
+
+```
+
+# OVERVIEW
+
+In this homework assignment, we will explore, analyze and model a data set containing approximately 2200 records. Each record represents a professional baseball team from the years 1871 to 2006 inclusive. Each record has the performance of the team for the given year, with all of the statistics adjusted to match the performance of a 162 game season. 
+
+## Objective: 
+To build a multiple linear regression model on the training data to predict the number of wins for the team. We can only use the variables provided (or variables that we will derive from the variables provided). 
+
+# DATA EXPLORATION
+
+## Data Summary 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mbd1 <- describe(mbTrain, na.rm = F)
+mbd1$na_count <- sapply(mbTrain, function(y) sum(length(which(is.na(y)))))
+mbd1$na_count_perc <- sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
+
+# eliminate index column
+mbd1 <- mbd1[-1,]
+```
+
+
+```{r echo=FALSE}
+colsTrain<-ncol(mbTrain)
+colsEval<-ncol(mbEval)
+missingCol<-colnames(mbTrain)[!(colnames(mbTrain) %in% colnames(mbEval))]
+```
+
+The dataset consists of two data files: training and evaluation. The training dataset contains `r colsTrain` columns, while the evaluation dataset contains `r colsEval`. The evaluation dataset is missing column `r missingCol`. We will start by exploring the training data set since it will be the one used to generate the regression model.
+
+```{r echo=FALSE}
+text<-"a test"
+if(all(apply(mbTrain,2,function(x) is.numeric(x)))==TRUE) {
+  text<-"all data is numeric"
+} else {
+  text<-"not all data is numeric"
+}
+maxMeanMedianDiff<-round(max(abs(sapply(mbTrain, median, na.rm = T) - sapply(mbTrain, mean, na.rm = T))*100/(sapply(mbTrain, max, na.rm = T)-sapply(mbTrain, min, na.rm = T))),2)
+```
+
+First we see that `r text`. 
+
+```{r echo=FALSE}
+nas<-as.data.frame(sapply(mbTrain, function(x) sum(is.na(x))))
+nasp<-as.data.frame(sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1)))
+colnames(nas)<-c("name")
+maxna<-max(nas)
+maxnaname<-rownames(nas)[nas$name==maxna]
+percent<-round(maxna/nrow(mbTrain)*100,1)
+```
+
+An important aspect of any dataset is to determine how much, if any, data is missing. We look at all the variables to see which if any have missing data. We look at the percentages of the data that are missing:
+
+```{r echo=FALSE}
+#sapply(mbTrain, function(x) sum(is.na(x)))
+#sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
+kable(mbd1, "html", escape = F) %>%
+  kable_styling("striped", full_width = T) %>%
+  column_spec(1, bold = T) %>%
+  scroll_box(width = "100%", height = "700px")
+```
+
+From this result we can see how several variables have a number of missing values. The maximum number of missing values was `r maxna` in the `r maxnaname` variable. This is a significant amount of missing data representing `r percent`% of that data. 
+
+With missing data asseced, we can look into descriptive statistics in more detail. Interestingly we find that the difference between means and medians is fairly small for all data columns. The maximum difference is in fact only `r maxMeanMedianDiff`%. This means that we are to expect the distributions of this data to be fairly uniform. To visualize this we plot histograms for each data. 
+
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+attach(mbTrain)
+ggplot(gather(mbTrain), aes(value)) +
+    geom_histogram(bins = 20) +
+    facet_wrap(~key, scales = "free_x")
+
+```
+
+The plot of distributions does show fairly uniform data, but it also show the potential precense of outliers in at least two of the predictors. This is not the best way to vizualise ouliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appera to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_PITCHING_BB and TEAM_FIELDING_E. We highlight these variables from the desity plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
+
+**TEAM_PITCHING_H**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_H)
+boxplot(mbTrain$TEAM_PITCHING_H)
+summary(mbTrain$TEAM_PITCHING_H)
+max<-summary(mbTrain$TEAM_PITCHING_H)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_H)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_H)[4]-summary(mbTrain$TEAM_PITCHING_H)[3]),0)
+```
+
+From the summary for this variable we see that the maximum is `r max`, which is substantially far from the median of `r median`. We can also see a wide spread between mean and median of `r spread`. But we know the maximum is not a realistic number. We can compare the numbers of pitching hits, to the number of batting hits, summary for which is shown below:
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_H)
+maxb<-summary(mbTrain$TEAM_BATTING_H)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_H)[4]-summary(mbTrain$TEAM_BATTING_H)[3]),0)
+```
+
+For batting the maximum is `r maxb`, much lower than `r max`. We expect these two variables to somewhat equal values since one is the reciprocal of the other. As a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_PITCHING_SO**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_SO)
+boxplot(mbTrain$TEAM_PITCHING_SO)
+summary(mbTrain$TEAM_PITCHING_SO)
+max<-summary(mbTrain$TEAM_PITCHING_SO)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_SO)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_SO)[4]-summary(mbTrain$TEAM_PITCHING_SO)[3]),0)
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing agaisnt it confirms the outliers.
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_SO)
+maxb<-summary(mbTrain$TEAM_BATTING_SO)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_SO)[3]-summary(mbTrain$TEAM_BATTING_SO)[4]),1)
+```
+
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_PITCHING_BB**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_BB)
+boxplot(mbTrain$TEAM_PITCHING_BB)
+summary(mbTrain$TEAM_PITCHING_BB)
+max<-summary(mbTrain$TEAM_PITCHING_BB)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_BB)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_BB)[4]-summary(mbTrain$TEAM_PITCHING_BB)[3]),0)
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing agaisnt it confirms the outliers.
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_BB)
+maxb<-summary(mbTrain$TEAM_BATTING_BB)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_BB)[3]-summary(mbTrain$TEAM_BATTING_BB)[4]),1)
+```
+
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_FIELDING_E**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_FIELDING_E)
+boxplot(mbTrain$TEAM_FIELDING_E)
+summary(mbTrain$TEAM_FIELDING_E)
+max<-summary(mbTrain$TEAM_FIELDING_E)[6]
+median<-round(summary(mbTrain$TEAM_FIELDING_E)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_FIELDING_E)[4]-summary(mbTrain$TEAM_FIELDING_E)[3]),0)
+
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. 
+
+## Correlation Plot
+
+Looking at correlation of variables to number of wins provides some interesting data.  We find some correlations that make sense from what might assume with subject knowledge of base, e.g., the number of hits and number of variables both have significant positive correlation with Wins and other statistics like stolen bases, while still positive, are not so strongly related.  What is surprising though, are the pitching statistics.  We would assume that a team that allowed the opposing team more hits, would lose more games (and win less), but that is not what the data shows us.  Perhaps there are outliers swaying the correlation.
+
+Regardless, we can use some of these correlations to drive initial models later, in terms of likely fields to choose for an effective model.
+
+```{r echo = FALSE, message=FALSE}
+cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
+```
+
+
+## Missing and Invalid Data
+Are any of the variables missing and need to be imputed "fixed"?
+
+
+
+# DATA PREPARATION
+
+## New Variable Creation / Removal (Due to Collinearity and/or Missing Values)
+First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also remove the "INDEX" column as that is not used.
+
+```{r echo=FALSE}
+mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", maxnaname))]
+```
+
+Next task is to handle missing data in the other variables. Here, becouse the percentages of missing data are lower, we can replace missing data with the median. We prefer replacing with median instead of mean because the latter is more sensitive to outliers. So we get a clean dataset without missing values.
+
+Note we also consider zeros to be missing data.  Since each row is a season of data for a given baseball team, it would be extraordinarily unlikely that any of these statistics would have zero as an actual value.  Therefore we are assuming zero is another indicator of missing value and we will transform them into a median value.
+
+```{r echo=FALSE}
+
+for(i in 2:ncol(mbTrain))
+{
+    idx <- mbTrain[i]==0 | is.na(mbTrain[i])  #find index of all rows that are zero or na
+    mbTrain[i][idx] <- (floor(median(mbTrain[[i]][mbTrain[[i]]!=0], na.rm = TRUE))) #remove zeros and na's from median equation
+}
+
+#don't need these rows anymore, above loop takes care of it
+# mbTrain$TEAM_BASERUN_CS[is.na(mbTrain$TEAM_BASERUN_CS)] <- median(mbTrain$TEAM_BASERUN_CS, na.rm=TRUE)
+# mbTrain$TEAM_BATTING_SO[is.na(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_BATTING_SO, na.rm=TRUE)
+# mbTrain$TEAM_BASERUN_SB[is.na(mbTrain$TEAM_BASERUN_SB)] <- median(mbTrain$TEAM_BASERUN_SB, na.rm=TRUE)
+# mbTrain$TEAM_PITCHING_SO[is.na(mbTrain$TEAM_PITCHING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
+
+```
+
+In the exploratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median becouse it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case becouse these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
+
+**TEAM_PITCHING_H**
+
+```{r echo=FALSE}
+mbTrain$TEAM_PITCHING_H[mbTrain$TEAM_PITCHING_H>max(mbTrain$TEAM_BATTING_H)] <- median(mbTrain$TEAM_PITCHING_H, na.rm=TRUE)
+
+plot(mbTrain$TEAM_PITCHING_H)
+boxplot(mbTrain$TEAM_PITCHING_H)
+summary(mbTrain$TEAM_PITCHING_H)
+max<-summary(mbTrain$TEAM_PITCHING_H)[6]
+median<-
+    
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_H)[4]-summary(mbTrain$TEAM_PITCHING_H)[3]),0)
+```
+
+From the summary we now see that the maximum is `r max`, which is a much more reasonable number. We can also see a wide spread between mean and median of `r spread`, indicating a more normal distribution than before.
+
+**TEAM_PITCHING_SO**
+
+```{r echo=FALSE}
+mbTrain$TEAM_PITCHING_SO[mbTrain$TEAM_PITCHING_SO>max(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
+
+plot(mbTrain$TEAM_PITCHING_SO)
+boxplot(mbTrain$TEAM_PITCHING_SO)
+summary(mbTrain$TEAM_PITCHING_SO)
+max<-summary(mbTrain$TEAM_PITCHING_SO)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_SO)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_SO)[4]-summary(mbTrain$TEAM_PITCHING_SO)[3]),0)
+```
+
+From the summary we now see that the maximum is `r max`, which is a much more reasonable number. We can also see a wide spread between mean and median of `r spread`, indicating a more normal distribution than before.
+
+```{r echo=FALSE,message=FALSE}
+attach(mbTrain)
+ggplot(gather(mbTrain), aes(value)) +
+    geom_histogram(bins = 20) +
+    facet_wrap(~key, scales = "free_x")
+
+```
+
+Lastly, before we create models, lets divide data into test and training sets, with 80% for training, 20% for test.  This way we have a method to validate our models.
+
+```{r echo = FALSE, message=FALSE}
+set.seed(42)
+sample <- sample.int(n=nrow(mbTrain), size = floor(.80*nrow(mbTrain)),replace=F)
+train <- mbTrain[sample,]
+test <- mbTrain[-sample,]
+
+```
+
+
+# BUILD MODELS
+
+**Batting only model**
+
+Combine all batting variables.
+
+```{r echo = FALSE, message=FALSE}
+###Note, this doesn't include TEAM_BATTING_BB (base on balls, TEAM_BATTING_H includes hits, double, triples and hr).  Also doesn't include HPB, but since so many were missing from there, doesn't matter for that.
+attach(train)
+bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,train)
+summary(bat_mod)
+plot(TARGET_WINS,residuals(bat_mod))
+abline()
+hist(bat_mod$residuals)
+qqnorm(bat_mod$residuals)
+qqline(bat_mod$residuals)
+#ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+ggplot(bat_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
+**Pitching only model**
+
+Combine all pitching variables.
+
+```{r echo = FALSE, message=FALSE}
+pitch_mod<-lm(TARGET_WINS~TEAM_PITCHING_H+TEAM_PITCHING_HR,train)
+summary(pitch_mod)
+plot(TEAM_PITCHING_H+TEAM_PITCHING_HR, TARGET_WINS)
+ggplot(train, aes(x = TEAM_PITCHING_HR + TEAM_PITCHING_H, y = TARGET_WINS)) +
+    geom_point() + 
+    geom_smooth(aes(y=predict(pitch_mod)))
+    
+#abline(pitch_mod)
+plot(TARGET_WINS,residuals(bat_mod))
+abline(0,0)
+hist(pitch_mod$residuals)
+qqnorm(pitch_mod$residuals)
+qqline(pitch_mod$residuals)
+ggplot(pitch_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
+```{r echo = FALSE, message=FALSE}
+
+train$HITS_NOHR <- TEAM_BATTING_H - TEAM_BATTING_HR
+attach(train)
+
+hits_NOHR_Mod <- lm(TARGET_WINS ~ HITS_NOHR)
+summary(hits_NOHR_Mod)
+plot(HITS_NOHR, TARGET_WINS)
+abline(hits_NOHR_Mod)
+hist(hits_NOHR_Mod$residuals)
+qqnorm(hits_NOHR_Mod$residuals)
+qqline(hits_NOHR_Mod$residuals)
+ggplot(hits_NOHR_Mod, aes(x= .fitted, y= .resid)) +geom_point()
+
+
+```
+
+```{r echo = FALSE, message=FALSE}
+#making a new column with the addition of these 3 doesn't work well, should be seperated in the model
+#train$HITS_BB_ERR_NOHR <- HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E
+
+hitsNoHR_bb_e_mod <- lm(TARGET_WINS~ HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E,train)
+summary(hitsNoHR_bb_e_mod)
+plot((HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+abline(hitsNoHR_bb_e_mod)
+hist(hitsNoHR_bb_e_mod$residuals)
+qqnorm(hitsNoHR_bb_e_mod$residuals)
+qqline(hitsNoHR_bb_e_mod$residuals)
+ggplot(hitsNoHR_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
+Best in terms of residuals and Rsquared
+Hits, BB, and Fielding Errors.  Plost look good except for short tailed issues in the QQ plot.
+
+```{r echo = FALSE, message=FALSE}
+
+
+#making a new column with the addition of these 3 doesn't work well, should be seperated in the model
+#train$HITS_BB_ERR_NOHR <- TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E
+
+hits_bb_e_mod <- lm(TARGET_WINS~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E, train)
+summary(hits_bb_e_mod)
+plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+abline(hits_bb_e_mod)
+hist(hits_bb_e_mod$residuals)
+qqnorm(hits_bb_e_mod$residuals)
+qqline(hits_bb_e_mod$residuals)
+ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
+Attempt at boxcox, didn't achieve better results in R squared (not SE not directly comparable due to adjustment with boxcox)  The QQ plot seems to look a bit better as the negative quantiles are much closer to the line.
+Box Cox
+```{r echo = FALSE, message=FALSE}
+boxcox(hits_bb_e_mod, lambda = seq(1.2,1.45, 0.05))
+lambda <- 1.33
+TARGET_WINS_BC <- ((TARGET_WINS^lambda)-1)/lambda
+TEAM_BATTING_H_BC <- ((TEAM_BATTING_H^lambda)-1)/lambda
+TEAM_BATTING_BB_BC <- ((TEAM_BATTING_BB^lambda)-1)/lambda
+TEAM_FIELDING_E_BC <- ((TEAM_FIELDING_E^lambda)-1)/lambda
+#hits_bb_e_mod_BC <- lm(TARGET_WINS_BC ~ TEAM_BATTING_H_BC + TEAM_BATTING_BB_BC + TEAM_FIELDING_E_BC)
+hits_bb_e_mod_BC <- lm(TARGET_WINS_BC ~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E)
+summary(hits_bb_e_mod_BC)
+#plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+#abline(hits_bb_e_mod_bc)
+hist(hits_bb_e_mod_BC$residuals)
+qqnorm(hits_bb_e_mod_BC$residuals)
+qqline(hits_bb_e_mod_BC$residuals)
+ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
+
+# SELECT MODELS
+## Compare Key Statistics
+## Pick the top two
+## Pick the “best” model
+## Apply to the evaluation data
+## Conclusion
+
+# APPENDIX
+
+
+```{r}
+
+```
