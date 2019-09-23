@@ -238,6 +238,83 @@ ggplot(gather(mbTrain), aes(value)) +
 
 ```
 
+**New Variables**
+
+With a clean dataset, we can now start looking at what predictor variables can be combined and what new statistics can be derived.
+
+On the batting side we can start by adding a variable for single hits since the dataset has a variable for all 4 kinds of hits.
+
+TEAM_BATTING_HS = TEAM_BATTING_H - (TEAM_BATTING_2B + TEAM_BATTING_3B + TEAM_BATTING_HR)
+
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_BATTING_HS<-mbTrain$TEAM_BATTING_H - (mbTrain$TEAM_BATTING_2B + mbTrain$TEAM_BATTING_3B + mbTrain$TEAM_BATTING_HR)
+summary(mbTrain$TEAM_BATTING_HS)
+```
+
+There are other popular baseball statistics which are regulary calculated. The data given is limited, so it won't be possible to make all these calculations. But we can use the data given to calculate some statistics that resemble some of the common baseball measurments. 
+
+The number of times a batter reaches base can be calculated as Times On Base:
+
+**Times On Base**
+
+TOB = Base Hits + Walks + Hits by Pitch 
+TOB = ( TEAM_BATTING_H - TEAM_BATTING_HR ) + TEAM_BATTING_BB + TEAM_BATTING_HBP 
+TOB = TEAM_BATTING_TOB
+
+In our case we do not have TEAM_BATTING_HBP. We deleted this predictor since it didn't contain enough data, so we will not include this term in calculating TOB. 
+
+TEAM_BATTING_TOB Summary:
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_BATTING_TOB<-mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_HR# + mbTrain$TEAM_BATTING_BB
+summary(mbTrain$TEAM_BATTING_TOB)
+```
+
+**On Base Percentage**
+
+If we devide this statistic by the times a batter appears on plate, we have a ratio for On Base Percentage. Batter apperances on plate is not a statistic that was given, but we can assumes it would the similar to the number of times a batter produces a hit and the times of strikeouts.
+
+OBP = TOB / ( Base Hits + Walks + Hits by Pitch + Strikeouts ) 
+OBP = TEAM_BATTING_TOB / (( TEAM_BATTING_H - TEAM_BATTING_HR ) + TEAM_BATTING_BB + TEAM_BATTING_HBP + TEAM_BATTING_SO )
+OBP = TEAM_BATTING_OBP
+
+Same as before TEAM_BATTING_HBP is missing so we do not include it. 
+
+TEAM_BATTING_OBP Summary
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_BATTING_OBP<-mbTrain$TEAM_BATTING_TOB / (( mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_HR ) + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
+summary(mbTrain$TEAM_BATTING_OBP)
+```
+
+
+**Batting Average**
+
+This statistics is calculated as the number of batter hits devided by times at bat or on plate. With our dataset we will compute times at bat as the sum of a batters hits and strike out, same as we did on the privious calculated variable since the number of Hits by Pitch is not available:
+
+AVG = Hits / (Hits + Walks + Strikeouts)
+AVG = TEAM_BATTING_H / ( TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_BATTING_SO )
+AVG = TEAM_BATTING_BAVG
+
+TEAM_BATTING_BAVG Summary
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_BATTING_BAVG<-mbTrain$TEAM_BATTING_H / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
+summary(mbTrain$TEAM_BATTING_BAVG)
+```
+
+**Slugging Percentage**
+
+A shortcoming of the previous statistic is that it weights any kind of hits equally. To account for the fact that some hits are more beneficial or carry higher weight we can calculate a slugging percentage by multipliying each kind of hit by an increasing number.
+
+SLG = ( Single Hits + 2 * Double Hits + 3 * Tripple Hits + 4 * Home Runs ) / (Hits + Walks + Strikeouts)
+TEAM_BATTING_SLG = ( ( TEAM_BATTING_H - TEAM_BATTING_2B - TEAM_BATTING_3B - TEAM_BATTING_HR )  + 2 * TEAM_BATTING_2B + 3 * TEAM_BATTING_3B + 4 * TEAM_BATTING_HR ) / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
+
+TEAM_BATTING_SLG Summary
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_BATTING_SLG<-( ( mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_2B - mbTrain$TEAM_BATTING_3B - mbTrain$TEAM_BATTING_HR )  + 2 * mbTrain$TEAM_BATTING_2B + 3 * mbTrain$TEAM_BATTING_3B + 4 * mbTrain$TEAM_BATTING_HR ) / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
+summary(mbTrain$TEAM_BATTING_SLG)
+```
+
+**Training and Test**
+
 Lastly, before we create models, lets divide data into test and training sets, with 80% for training, 20% for test.  This way we have a method to validate our models.
 
 ```{r echo = FALSE, message=FALSE}
@@ -252,21 +329,55 @@ test <- mbTrain[-sample,]
 
 **Batting only model**
 
-Combine all batting variables.
+Model using batting hits as predictor. TEAM_BATTING_H includes single, doubles and tripples.
 
 ```{r echo = FALSE, message=FALSE}
 ###Note, this doesn't include TEAM_BATTING_BB (base on balls, TEAM_BATTING_H includes hits, double, triples and hr).  Also doesn't include HPB, but since so many were missing from there, doesn't matter for that.
 attach(train)
-bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,train)
-summary(bat_mod)
-plot(TARGET_WINS,residuals(bat_mod))
-abline()
-hist(bat_mod$residuals)
-qqnorm(bat_mod$residuals)
-qqline(bat_mod$residuals)
+bat_mod_allHits<-lm(TARGET_WINS~TEAM_BATTING_H,train)
+summary(bat_mod_allHits)
+plot(mbTrain$TEAM_BATTING_H,mbTrain$TARGET_WINS)
+abline(bat_mod_allHits)
+plot(TARGET_WINS,residuals(bat_mod_allHits))
+hist(bat_mod_allHits$residuals)
+qqnorm(bat_mod_allHits$residuals)
+qqline(bat_mod_allHits$residuals)
 #ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
-ggplot(bat_mod, aes(x= .fitted, y= .resid)) +geom_point()
+ggplot(bat_mod_allHits, aes(x= .fitted, y= .resid)) +geom_point()
 ```
+
+Model using only single hits. 
+
+```{r echo = FALSE, message=FALSE}
+attach(train)
+bat_mod_single_Hits<-lm(TARGET_WINS~(TEAM_BATTING_H-TEAM_BATTING_2B-TEAM_BATTING_3B-TEAM_BATTING_HR),train)
+summary(bat_mod_single_Hits)
+plot((mbTrain$TEAM_BATTING_H-mbTrain$TEAM_BATTING_2B-mbTrain$TEAM_BATTING_3B-mbTrain$TEAM_BATTING_HR),mbTrain$TARGET_WINS)
+abline(bat_mod_single_Hits)
+plot(TARGET_WINS,residuals(bat_mod_single_Hits))
+hist(bat_mod_single_Hits$residuals)
+qqnorm(bat_mod_single_Hits$residuals)
+qqline(bat_mod_single_Hits$residuals)
+#ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+ggplot(bat_mod_single_Hits, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
+Model using single hits and strikes by batter. 
+
+```{r echo = FALSE, message=FALSE}
+attach(train)
+bat_mod_single_Hits_strikes<-lm(TARGET_WINS~TEAM_BATTING_H-TEAM_BATTING_2B-TEAM_BATTING_3B-TEAM_BATTING_HR+TEAM_BATTING_SO,train)
+summary(bat_mod_single_Hits_strikes)
+plot((mbTrain$TEAM_BATTING_H-mbTrain$TEAM_BATTING_2B-mbTrain$TEAM_BATTING_3B-mbTrain$TEAM_BATTING_HR),mbTrain$TARGET_WINS)
+abline(bat_mod_single_Hits_strikes)
+plot(TARGET_WINS,residuals(bat_mod_single_Hits_strikes))
+hist(bat_mod_single_Hits_strikes$residuals)
+qqnorm(bat_mod_single_Hits_strikes$residuals)
+qqline(bat_mod_single_Hits_strikes$residuals)
+#ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+ggplot(bat_mod_single_Hits_strikes, aes(x= .fitted, y= .resid)) +geom_point()
+```
+
 
 **Pitching only model**
 
@@ -281,7 +392,7 @@ ggplot(train, aes(x = TEAM_PITCHING_HR + TEAM_PITCHING_H, y = TARGET_WINS)) +
     geom_smooth(aes(y=predict(pitch_mod)))
     
 #abline(pitch_mod)
-plot(TARGET_WINS,residuals(bat_mod))
+plot(TARGET_WINS,residuals(pitch_mod))
 abline(0,0)
 hist(pitch_mod$residuals)
 qqnorm(pitch_mod$residuals)
@@ -337,8 +448,10 @@ qqnorm(hits_bb_e_mod$residuals)
 qqline(hits_bb_e_mod$residuals)
 ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
 ```
+
 Attempt at boxcox, didn't achieve better results in R squared (not SE not directly comparable due to adjustment with boxcox)  The QQ plot seems to look a bit better as the negative quantiles are much closer to the line.
 Box Cox
+
 ```{r echo = FALSE, message=FALSE}
 boxcox(hits_bb_e_mod, lambda = seq(1.2,1.45, 0.05))
 lambda <- 1.33
