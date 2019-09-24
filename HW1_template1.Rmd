@@ -391,6 +391,9 @@ qqnorm(hits_bb_e_mod$residuals)
 qqline(hits_bb_e_mod$residuals)
 ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
 ```
+
+## CoxBox Model
+
 Attempt at boxcox, didn't achieve better results in R squared (not SE not directly comparable due to adjustment with boxcox)  The QQ plot seems to look a bit better as the negative quantiles are much closer to the line.
 Box Cox
 ```{r echo = FALSE, message=FALSE}
@@ -411,19 +414,16 @@ qqline(hits_bb_e_mod_BC$residuals)
 ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
-## CoxBox Model
-
-
 
 # SELECT MODELS
 ## Compare Model Statistics
 
 | Metric    | Batting Model | Pitching Model  | BoxCox Model  | 
 | --------- | ------------- | --------------  | ------------  |  
-| RSE       | 14.40         | 15.20           |               | 
-| R^2       | 0.1646        | 0.06883         |               |
-| Adj. R^2  | 0.1642        | 0.06781         |               |
-| F Stat.   | 358.2         | 67.16           |               |
+| RSE       | 14.40         | 15.20           | 57.99         | 
+| R^2       | 0.1646        | 0.06883         | 0.2317        |
+| Adj. R^2  | 0.1642        | 0.06781         | 0.2305        |
+| F Stat.   | 358.2         | 67.16           | 182.6         |
 
 
 ## Pick the best regression model
@@ -431,6 +431,133 @@ ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 ## Conclusion
 
 # APPENDIX
+
+find counts of na's
+notice that #hbp and cs (hit by pitch and caught stealing) have very large numbers of missing values, probably shouldn't use, 
+and knowing baseball, probably minor impact on wins regardless, so remove those columns...
+```{r echo = FALSE, message=FALSE}
+sapply(mbTrain, function(x) sum(is.na(x)))
+#remove those two columns, plus the index colume which we don't need
+mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", "TEAM_BATTING_HBP", "TEAM_BASERUN_CS"))]
+```
+
+
+convert NA's to -1 for now so we can run test on zero's as zero's for any of these stats clearly is inaccurate and eqivalent to an NA
+
+Number of zeros fields is not so bad, but lets not replace them until we check for outliers and convert NA's back to -1
+```{r echo = FALSE, message=FALSE}
+mbTrain[is.na(mbTrain)] <- -1
+sapply(mbTrain, function(x) sum(x == 0))
+```
+
+
+Running summary we can see that there are some really big outliers (e.g., 19278 Strikeouts in one year?, that would be 119 per game....) at initial glance (can always revisit), looks like Pitching_Hits, Pitching_BB, Pitching_SO and Fielding Errors all have outliers that 
+are not realistic values
+```{r echo = FALSE, message=FALSE}
+summary(mbTrain)
+#looking at top values we can see that there maybe a number of years that are unrealistic
+head(sort(mbTrain$TEAM_PITCHING_H, decreasing = TRUE))
+head(sort(mbTrain$TEAM_PITCHING_BB, decreasing = TRUE))
+head(sort(mbTrain$TEAM_PITCHING_SO, decreasing = TRUE))
+head(sort(mbTrain$TEAM_FIELDING_E, decreasing = TRUE))
+```
+
+Let's plot to see where outliers are
+
+```{r echo = FALSE, message=FALSE}
+plot(mbTrain$TEAM_PITCHING_H)
+boxplot(mbTrain$TEAM_PITCHING_H)
+plot(mbTrain$TEAM_PITCHING_BB)
+boxplot(mbTrain$TEAM_PITCHING_BB)
+plot(mbTrain$TEAM_PITCHING_SO)
+boxplot(mbTrain$TEAM_PITCHING_SO)
+plot(mbTrain$TEAM_FIELDING_E)
+boxplot(mbTrain$TEAM_FIELDING_E)
+```
+
+There are a lot of rows with pitching hits greater than 3000 (there was max of 2554 hits by batting team, so a limit of 3000 hits (18.5 avg per game) by a pitching team doesn't seem so unreasonable as max)we see 86, these should probably be tossed and replaced with median (mean?)
+```{r echo = FALSE, message=FALSE}
+sum(mbTrain$TEAM_PITCHING_H > 3000)
+```
+Using same idea for base on balls, max for batting was 878, so perhaps a 1200 max for pitching (7.5 avg a game) might be reasonable, so 10 rows like this.
+```{r echo = FALSE, message=FALSE}
+sum(mbTrain$TEAM_PITCHING_BB > 1200)
+```
+
+for strikeouts, batting max of 1399, so perhaps 1800 for pitching max, and we have 9 rows like this.
+```{r echo = FALSE, message=FALSE}
+sum(mbTrain$TEAM_PITCHING_SO > 1800)
+```
+
+For fielding errors, there is no corresponding number to validate against (like with pitching compared to batting), but if we use a plausible limit of about 10 per game (which is still really high we can eliminate clear outliers).
+```{r echo = FALSE, message=FALSE}
+sum(mbTrain$TEAM_FIELDING_E > 1600)
+```
+
+Now that we have identified them, let's replace all these values
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_PITCHING_H[mbTrain$TEAM_PITCHING_H >3000] <- 0
+mbTrain$TEAM_PITCHING_BB[mbTrain$TEAM_PITCHING_BB >1200] <- 0
+mbTrain$TEAM_PITCHING_SO[mbTrain$TEAM_PITCHING_SO >1800] <- 0
+mbTrain$TEAM_FIELDING_E[mbTrain$TEAM_FIELDING_E >1600] <- 0
+```
+Now lets replace all zeros, plus the -1's we had put in earlier for for the na's.
+
+We will use median for those values.
+
+```{r echo = FALSE, message=FALSE}
+for(i in 2:ncol(mbTrain))
+{
+    idx <- mbTrain[i]<=0
+    mbTrain[i][idx] <- median(mbTrain[[i]])
+}
+```
+
+
+Do some correlation
+```{r echo = FALSE, message=FALSE}
+cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
+```
+
+Do some basic plots to start looking at data:
+
+```{r echo = FALSE, message=FALSE}
+attach(mbTrain)
+ggplot(mbTrain, aes(y=TEAM_BATTING_H, x= 1)) + geom_boxplot()
+boxplot(TARGET_WINS)
+#note appears reasonably normally distributed
+ggplot() + geom_histogram(aes(x = TARGET_WINS))
+ggplot() + geom_histogram(aes(x = TEAM_BATTING_H))
+ggplot(gather(mbTrain), aes(value)) +
+    geom_histogram(bins = 20) +
+    facet_wrap(~key, scales = "free_x")
+```
+
+Fit a couple really simple models just to explore, one with everything, one with just home runs against wins.
+
+```{r echo = FALSE, message=FALSE}
+lmFit <- lm(TARGET_WINS ~., data = mbTrain)
+summary(lmFit)
+lmFit <- lm(TARGET_WINS ~ TEAM_BATTING_HR, data = mbTrain)
+summary(lmFit)
+```
+
+Let's plot hits against wins as that field should highest correlation.
+
+```{r echo = FALSE, message=FALSE}
+lmFitH <- lm(TARGET_WINS ~ TEAM_BATTING_H)
+ggplot(mbTrain, aes(x= TEAM_BATTING_H, y = TARGET_WINS)) + 
+    geom_point() + 
+    geom_smooth(method = "lm", se= FALSE)
+```
+Plot Residuals
+
+```{r echo = FALSE, message=FALSE}
+#vs index
+ggplot(lmFitH, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+#vs fitted value
+ggplot(lmFitH, aes(x= .fitted, y= .resid)) +geom_point()
+```
 
 
 ```{r}
