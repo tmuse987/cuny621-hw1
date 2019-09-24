@@ -54,7 +54,7 @@ maxnaname<-rownames(nas)[nas$name==maxna]
 percent<-round(maxna/nrow(mbTrain)*100,1)
 ```
 
-An important aspec of any dataset is to determine how much, if any, data is missing. We look at all the variables to see which if any have missing data. We look at the percentages of the data that are missing:
+An important aspect of any dataset is to determine how much, if any, data is missing. We look at all the variables to see which if any have missing data. We look at the percentages of the data that are missing:
 
 ```{r echo=FALSE}
 #sapply(mbTrain, function(x) sum(is.na(x)))
@@ -63,7 +63,7 @@ sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 
 From this result we can see how several variables have a number of missing values. The maximum number of missing values was `r maxna` in the `r maxnaname` variable. This is a significant amount of missing data representing `r percent`% of that data. 
 
-With missing data asseced, we can look into descriptive statistics in more detail. Interestingly we find that the difference between means and medians is fairly small for all data columns. The maximum difference is in fact only `r maxMeanMedianDiff`%. This means that we are to expect the distributions of this data to be fairly uniform. To visualize this we plot histograms for each data. 
+With missing data assessed, we can look into descriptive statistics in more detail. Interestingly we find that the difference between means and medians is fairly small for all data columns. The maximum difference is in fact only `r maxMeanMedianDiff`%. This means that we are to expect the distributions of this data to be fairly uniform. To visualize this we plot histograms for each data. 
 
 ```{r echo=FALSE}
 #summary(mbTrain)
@@ -77,7 +77,7 @@ ggplot(gather(mbTrain), aes(value)) +
 
 ```
 
-The plot of distributions does show fairly uniform data, but it also show the potential precense of outliers in at least two of the predictors. This is not the best way to vizualise ouliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appera to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_PITCHING_BB and TEAM_FIELDING_E. We highlight these variables from the desity plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
+The plot of distributions does show fairly uniform data, but it also show the potential presence of outliers in at least two of the predictors. This is not the best way to visualize outliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appear to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_PITCHING_BB and TEAM_FIELDING_E. We highlight these variables from the density plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
 
 **TEAM_PITCHING_H**
 
@@ -98,7 +98,7 @@ maxb<-summary(mbTrain$TEAM_BATTING_H)[6]
 spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_H)[4]-summary(mbTrain$TEAM_BATTING_H)[3]),0)
 ```
 
-For batting the maximum is `r maxb`, much lower than `r max`. We expect these two variables to somewhat equal values since one is the reciprocal of the other. As a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+For batting the maximum is `r maxb`, much lower than `r max`. We expect these two variables to somewhat equal values since one is the reciprocal of the other. As a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
 
 **TEAM_PITCHING_SO**
 
@@ -111,7 +111,7 @@ median<-round(summary(mbTrain$TEAM_PITCHING_SO)[3],1)
 spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_SO)[4]-summary(mbTrain$TEAM_PITCHING_SO)[3]),0)
 ```
 
-Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing agaisnt it confirms the outliers.
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing against it confirms the outliers.
 
 ```{r echo=FALSE,message=FALSE}
 summary(mbTrain$TEAM_BATTING_SO)
@@ -119,7 +119,7 @@ maxb<-summary(mbTrain$TEAM_BATTING_SO)[6]
 spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_SO)[3]-summary(mbTrain$TEAM_BATTING_SO)[4]),1)
 ```
 
-We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
 
 **TEAM_PITCHING_BB**
 
@@ -132,7 +132,7 @@ median<-round(summary(mbTrain$TEAM_PITCHING_BB)[3],1)
 spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_BB)[4]-summary(mbTrain$TEAM_PITCHING_BB)[3]),0)
 ```
 
-Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing agaisnt it confirms the outliers.
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing against it confirms the outliers.
 
 ```{r echo=FALSE,message=FALSE}
 summary(mbTrain$TEAM_BATTING_BB)
@@ -140,7 +140,7 @@ maxb<-summary(mbTrain$TEAM_BATTING_BB)[6]
 spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_BB)[3]-summary(mbTrain$TEAM_BATTING_BB)[4]),1)
 ```
 
-We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a saminity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
 
 **TEAM_FIELDING_E**
 
@@ -177,7 +177,7 @@ First task under data preparation will be to eliminate all missing data. In the 
 mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", maxnaname))]
 ```
 
-Next task is to handle missing data in the other variables. Here, becouse the percentages of missing data are lower, we can replace missing data with the median. We prefer replacing with median instead of mean because the latter is more sensitive to outliers. So we get a clean dataset without missing values.
+Next task is to handle missing data in the other variables. Here, because the percentages of missing data are lower, we can replace missing data with the median. We prefer replacing with median instead of mean because the latter is more sensitive to outliers. So we get a clean dataset without missing values.
 
 Note we also consider zeros to be missing data.  Since each row is a season of data for a given baseball team, it would be extraordinarily unlikely that any of these statistics would have zero as an actual value.  Therefore we are assuming zero is another indicator of missing value and we will transform them into a median value.
 
@@ -197,7 +197,7 @@ for(i in 2:ncol(mbTrain))
 
 ```
 
-In the exploratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median becouse it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case becouse these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
+In the exploratory phase we also identified several variables with outliers. Outliers will be substituted with median. Again we choose median because it is less influenced by these outliers. What cutoff to use to tag an outlier reading could be a 3 standard deviation from the mean, or 1.5 time the inter quartile range, but in this case because these variables have reciprocals as seen in the exploratory phase, we will use the maximum reading of those variables.
 
 **TEAM_PITCHING_H**
 
@@ -235,23 +235,26 @@ attach(mbTrain)
 ggplot(gather(mbTrain), aes(value)) +
     geom_histogram(bins = 20) +
     facet_wrap(~key, scales = "free_x")
-
 ```
 
 **New Variables**
 
 With a clean dataset, we can now start looking at what predictor variables can be combined and what new statistics can be derived.
 
+**Batting Hit Singles**
+
 On the batting side we can start by adding a variable for single hits since the dataset has a variable for all 4 kinds of hits.
 
 TEAM_BATTING_HS = TEAM_BATTING_H - (TEAM_BATTING_2B + TEAM_BATTING_3B + TEAM_BATTING_HR)
 
+TEAM_BATTING_HS Summary
 ```{r echo = FALSE, message=FALSE}
 mbTrain$TEAM_BATTING_HS<-mbTrain$TEAM_BATTING_H - (mbTrain$TEAM_BATTING_2B + mbTrain$TEAM_BATTING_3B + mbTrain$TEAM_BATTING_HR)
 summary(mbTrain$TEAM_BATTING_HS)
+plot(mbTrain$TEAM_BATTING_HS,mbTrain$TARGET_WINS)
 ```
 
-There are other popular baseball statistics which are regulary calculated. The data given is limited, so it won't be possible to make all these calculations. But we can use the data given to calculate some statistics that resemble some of the common baseball measurments. 
+There are other popular baseball statistics which are regularly calculated. The data given is limited, so it won't be possible to make all these calculations. But we can use the data given to calculate some statistics that resemble some of the common baseball measurements. 
 
 The number of times a batter reaches base can be calculated as Times On Base:
 
@@ -267,11 +270,12 @@ TEAM_BATTING_TOB Summary:
 ```{r echo = FALSE, message=FALSE}
 mbTrain$TEAM_BATTING_TOB<-mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_HR# + mbTrain$TEAM_BATTING_BB
 summary(mbTrain$TEAM_BATTING_TOB)
+plot(mbTrain$TEAM_BATTING_TOB,mbTrain$TARGET_WINS)
 ```
 
 **On Base Percentage**
 
-If we devide this statistic by the times a batter appears on plate, we have a ratio for On Base Percentage. Batter apperances on plate is not a statistic that was given, but we can assumes it would the similar to the number of times a batter produces a hit and the times of strikeouts.
+If we divide this statistic by the times a batter appears on plate, we have a ratio for On Base Percentage. Batter appearances on plate is not a statistic that was given, but we can assumes it would the similar to the number of times a batter produces a hit and the times of strikeouts.
 
 OBP = TOB / ( Base Hits + Walks + Hits by Pitch + Strikeouts ) 
 OBP = TEAM_BATTING_TOB / (( TEAM_BATTING_H - TEAM_BATTING_HR ) + TEAM_BATTING_BB + TEAM_BATTING_HBP + TEAM_BATTING_SO )
@@ -283,12 +287,13 @@ TEAM_BATTING_OBP Summary
 ```{r echo = FALSE, message=FALSE}
 mbTrain$TEAM_BATTING_OBP<-mbTrain$TEAM_BATTING_TOB / (( mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_HR ) + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
 summary(mbTrain$TEAM_BATTING_OBP)
+plot(mbTrain$TEAM_BATTING_OBP,mbTrain$TARGET_WINS)
 ```
 
 
 **Batting Average**
 
-This statistics is calculated as the number of batter hits devided by times at bat or on plate. With our dataset we will compute times at bat as the sum of a batters hits and strike out, same as we did on the privious calculated variable since the number of Hits by Pitch is not available:
+This statistics is calculated as the number of batter hits divided by times at bat or on plate. With our dataset we will compute times at bat as the sum of a batters hits and strike out, same as we did on the previous calculated variable since the number of Hits by Pitch is not available:
 
 AVG = Hits / (Hits + Walks + Strikeouts)
 AVG = TEAM_BATTING_H / ( TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_BATTING_SO )
@@ -298,11 +303,12 @@ TEAM_BATTING_BAVG Summary
 ```{r echo = FALSE, message=FALSE}
 mbTrain$TEAM_BATTING_BAVG<-mbTrain$TEAM_BATTING_H / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
 summary(mbTrain$TEAM_BATTING_BAVG)
+plot(mbTrain$TEAM_BATTING_BAVG,mbTrain$TARGET_WINS)
 ```
 
 **Slugging Percentage**
 
-A shortcoming of the previous statistic is that it weights any kind of hits equally. To account for the fact that some hits are more beneficial or carry higher weight we can calculate a slugging percentage by multipliying each kind of hit by an increasing number.
+A shortcoming of the previous statistic is that it weights any kind of hits equally. To account for the fact that some hits are more beneficial or carry higher weight we can calculate a slugging percentage by multiplying each kind of hit by an increasing number.
 
 SLG = ( Single Hits + 2 * Double Hits + 3 * Tripple Hits + 4 * Home Runs ) / (Hits + Walks + Strikeouts)
 TEAM_BATTING_SLG = ( ( TEAM_BATTING_H - TEAM_BATTING_2B - TEAM_BATTING_3B - TEAM_BATTING_HR )  + 2 * TEAM_BATTING_2B + 3 * TEAM_BATTING_3B + 4 * TEAM_BATTING_HR ) / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
@@ -311,18 +317,40 @@ TEAM_BATTING_SLG Summary
 ```{r echo = FALSE, message=FALSE}
 mbTrain$TEAM_BATTING_SLG<-( ( mbTrain$TEAM_BATTING_H - mbTrain$TEAM_BATTING_2B - mbTrain$TEAM_BATTING_3B - mbTrain$TEAM_BATTING_HR )  + 2 * mbTrain$TEAM_BATTING_2B + 3 * mbTrain$TEAM_BATTING_3B + 4 * mbTrain$TEAM_BATTING_HR ) / ( mbTrain$TEAM_BATTING_H + mbTrain$TEAM_BATTING_BB + mbTrain$TEAM_BATTING_SO )
 summary(mbTrain$TEAM_BATTING_SLG)
+plot(mbTrain$TEAM_BATTING_SLG,mbTrain$TARGET_WINS)
+```
+
+**Strikeout Efficiency**
+
+Measures how successful a pitches is at striking out batters:
+
+PEFF = Strike Outs \ (Hits + Strike Outs)
+TEAM_PITCHING_PEFF = TEAM_PITCHING_SO \ (TEAM_PITCHING_H + TEAM_PITCHING_SO)
+
+TEAM_PITCHING_PEFF Summary
+```{r echo = FALSE, message=FALSE}
+mbTrain$TEAM_PITCHING_PEFF = mbTrain$TEAM_PITCHING_SO / (mbTrain$TEAM_PITCHING_H + mbTrain$TEAM_PITCHING_SO)
+summary(mbTrain$TEAM_PITCHING_PEFF)
+plot(mbTrain$TEAM_PITCHING_PEFF,mbTrain$TARGET_WINS)
+```
+
+
+```{r echo=FALSE,message=FALSE}
+attach(mbTrain)
+ggplot(gather(mbTrain), aes(value)) +
+    geom_histogram(bins = 20) +
+    facet_wrap(~key, scales = "free_x")
 ```
 
 **Training and Test**
 
-Lastly, before we create models, lets divide data into test and training sets, with 80% for training, 20% for test.  This way we have a method to validate our models.
+Lastly, before we create models, let's divide data into test and training sets, with 80% for training, 20% for test.  This way we have a method to validate our models.
 
 ```{r echo = FALSE, message=FALSE}
 set.seed(42)
 sample <- sample.int(n=nrow(mbTrain), size = floor(.80*nrow(mbTrain)),replace=F)
 train <- mbTrain[sample,]
 test <- mbTrain[-sample,]
-
 ```
 
 ###3. BUILD MODELS
@@ -378,6 +406,21 @@ qqline(bat_mod_single_Hits_strikes$residuals)
 ggplot(bat_mod_single_Hits_strikes, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
+Model using slugging percentage. 
+
+```{r echo = FALSE, message=FALSE}
+attach(train)
+bat_mod_slug<-lm(TARGET_WINS~TEAM_BATTING_SLG,train)
+summary(bat_mod_slug)
+plot(mbTrain$TEAM_BATTING_SLG,mbTrain$TARGET_WINS)
+abline(bat_mod_slug)
+plot(TARGET_WINS,residuals(bat_mod_slug))
+hist(bat_mod_slug$residuals)
+qqnorm(bat_mod_slug$residuals)
+qqline(bat_mod_slug$residuals)
+#ggplot(bat_mod, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
+ggplot(bat_mod_slug, aes(x= .fitted, y= .resid)) +geom_point()
+```
 
 **Pitching only model**
 
