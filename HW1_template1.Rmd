@@ -42,6 +42,7 @@ mbd1$na_count_perc <- sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTra
 
 # eliminate index column
 mbd1 <- mbd1[-1,]
+
 ```
 
 
@@ -80,14 +81,16 @@ An important aspect of any dataset is to determine how much, if any, data is mis
 #sapply(mbTrain, function(x) sum(is.na(x)))
 #sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 kable(mbd1, "html", escape = F) %>%
-  kable_styling("striped", full_width = T) %>%
+  #kable_styling("striped", full_width = T) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T) %>%
   column_spec(1, bold = T) %>%
-  scroll_box(width = "100%", height = "700px")
+  scroll_box(width = "100%", height = "500px")
 ```
+
 
 From this result we can see how several variables have a number of missing values. The maximum number of missing values was `r maxna` in the `r maxnaname` variable. This is a significant amount of missing data representing `r percent`% of that data. 
 
-With missing data asseced, we can look into descriptive statistics in more detail. Interestingly we find that the difference between means and medians is fairly small for all data columns. The maximum difference is in fact only `r maxMeanMedianDiff`%. This means that we are to expect the distributions of this data to be fairly uniform. To visualize this we plot histograms for each data. 
+With missing data assessed, we can look into descriptive statistics in more detail. Interestingly we find that the difference between means and medians is fairly small for all data columns. The maximum difference is in fact only `r maxMeanMedianDiff`%. This means that we are to expect the distributions of this data to be fairly uniform. To visualize this we plot histograms for each data. 
 
 
 ```{r echo=FALSE,message=FALSE,warning=FALSE}
@@ -195,8 +198,8 @@ Are any of the variables missing and need to be imputed "fixed"?
 
 # DATA PREPARATION
 
-## New Variable Creation / Removal (Due to Collinearity and/or Missing Values)
-First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also remove the "INDEX" column as that is not used.
+## Variable Creation / Removal 
+First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also removed the "INDEX" column as that is not used.
 
 ```{r echo=FALSE}
 mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", maxnaname))]
@@ -276,7 +279,7 @@ test <- mbTrain[-sample,]
 
 # BUILD MODELS
 
-**Batting only model**
+## Batting only model
 
 Combine all batting variables.
 
@@ -294,7 +297,7 @@ qqline(bat_mod$residuals)
 ggplot(bat_mod, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
-**Pitching only model**
+## Pitching only model
 
 Combine all pitching variables.
 
@@ -385,10 +388,7 @@ ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 
 
 # SELECT MODELS
-## Compare Key Statistics
-## Pick the top two
-## Pick the “best” model
-## Apply to the evaluation data
+## Pick the best regression model
 ## Conclusion
 
 # APPENDIX
