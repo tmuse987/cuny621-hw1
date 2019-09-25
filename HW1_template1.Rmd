@@ -22,7 +22,6 @@ library(kableExtra)
 #setwd("l:/school/cuny/621/hw1")
 mbTrain <- read.csv("moneyball-training-data.csv")
 mbEval <- read.csv("moneyball-evaluation-data.csv")
-
 ```
 
 # OVERVIEW
@@ -414,28 +413,65 @@ qqline(hits_bb_e_mod_BC$residuals)
 ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
+## Batting and Fielding Errors Model
+
+Hits, BB, and Fielding Errors.  Plost look good except for short tailed issues in the QQ plot.
+
+```{r echo = FALSE, message=FALSE}
+
+
+#making a new column with the addition of these 3 doesn't work well, should be seperated in the model
+#train$HITS_BB_ERR_NOHR <- TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E
+
+hits_bb_e_mod <- lm(TARGET_WINS~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E, train)
+summary(hits_bb_e_mod)
+plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
+abline(hits_bb_e_mod)
+hist(hits_bb_e_mod$residuals)
+qqnorm(hits_bb_e_mod$residuals)
+qqline(hits_bb_e_mod$residuals)
+ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
+```
 
 # SELECT MODELS
 ## Compare Model Statistics
 
-| Metric    | Batting Model | Pitching Model  | BoxCox Model  | 
-| --------- | ------------- | --------------  | ------------  |  
-| RSE       | 14.40         | 15.20           | 57.99         | 
-| R^2       | 0.1646        | 0.06883         | 0.2317        |
-| Adj. R^2  | 0.1642        | 0.06781         | 0.2305        |
-| F Stat.   | 358.2         | 67.16           | 182.6         |
+| Metric    | Batting Model | Pitching Model  | BoxCox Model  |  Batting and Fielding Errors Model |
+| --------- | ------------- | --------------  | ------------  |  --------------------------------- |
+| RSE       | 14.40         | 15.20           | 57.99         |  13.77                             |
+| R^2       | 0.1646        | 0.06883         | 0.2317        |  0.237                             |
+| Adj. R^2  | 0.1642        | 0.06781         | 0.2305        |  0.2357                            |
+| F Stat.   | 358.2         | 67.16           | 182.6         |  188                               |
 
+When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significat, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A CoxBox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%
+
+Residual plots were performed for all models and in general results were fairly similar. 
 
 ## Pick the best regression model
 
+The chosen regresion model was the Batting and Fielding Errors Model. It was the model with the highest acheived R and adjusted R square. It was chosen over the CoxBox transformation model because it is a simpler model. A plot of predicted test data was plotted agaisnt real test data to understand how well the model performs. 
+
+```{r echo = FALSE, message=FALSE}
+p<-predict(hits_bb_e_mod,test)
+plot(test$TARGET_WINS,p)
+```
+
+
 ## Conclusion
+
+```{r}
+write.csv(p,"predicted_test_values.csv")
+```
+
 
 # APPENDIX
 
-find counts of na's
-notice that #hbp and cs (hit by pitch and caught stealing) have very large numbers of missing values, probably shouldn't use, 
+**Code used in analysis**
+
+Find counts of na's
+Notice that #hbp and cs (hit by pitch and caught stealing) have very large numbers of missing values, probably shouldn't use, 
 and knowing baseball, probably minor impact on wins regardless, so remove those columns...
-```{r echo = FALSE, message=FALSE}
+```{r}
 sapply(mbTrain, function(x) sum(is.na(x)))
 #remove those two columns, plus the index colume which we don't need
 mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", "TEAM_BATTING_HBP", "TEAM_BASERUN_CS"))]
@@ -445,7 +481,7 @@ mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", "TEAM_BATTING_HBP", "
 convert NA's to -1 for now so we can run test on zero's as zero's for any of these stats clearly is inaccurate and eqivalent to an NA
 
 Number of zeros fields is not so bad, but lets not replace them until we check for outliers and convert NA's back to -1
-```{r echo = FALSE, message=FALSE}
+```{r}
 mbTrain[is.na(mbTrain)] <- -1
 sapply(mbTrain, function(x) sum(x == 0))
 ```
@@ -453,7 +489,7 @@ sapply(mbTrain, function(x) sum(x == 0))
 
 Running summary we can see that there are some really big outliers (e.g., 19278 Strikeouts in one year?, that would be 119 per game....) at initial glance (can always revisit), looks like Pitching_Hits, Pitching_BB, Pitching_SO and Fielding Errors all have outliers that 
 are not realistic values
-```{r echo = FALSE, message=FALSE}
+```{r}
 summary(mbTrain)
 #looking at top values we can see that there maybe a number of years that are unrealistic
 head(sort(mbTrain$TEAM_PITCHING_H, decreasing = TRUE))
@@ -464,7 +500,7 @@ head(sort(mbTrain$TEAM_FIELDING_E, decreasing = TRUE))
 
 Let's plot to see where outliers are
 
-```{r echo = FALSE, message=FALSE}
+```{r}
 plot(mbTrain$TEAM_PITCHING_H)
 boxplot(mbTrain$TEAM_PITCHING_H)
 plot(mbTrain$TEAM_PITCHING_BB)
@@ -476,11 +512,11 @@ boxplot(mbTrain$TEAM_FIELDING_E)
 ```
 
 There are a lot of rows with pitching hits greater than 3000 (there was max of 2554 hits by batting team, so a limit of 3000 hits (18.5 avg per game) by a pitching team doesn't seem so unreasonable as max)we see 86, these should probably be tossed and replaced with median (mean?)
-```{r echo = FALSE, message=FALSE}
+```{r}
 sum(mbTrain$TEAM_PITCHING_H > 3000)
 ```
 Using same idea for base on balls, max for batting was 878, so perhaps a 1200 max for pitching (7.5 avg a game) might be reasonable, so 10 rows like this.
-```{r echo = FALSE, message=FALSE}
+```{r}
 sum(mbTrain$TEAM_PITCHING_BB > 1200)
 ```
 
@@ -544,7 +580,7 @@ summary(lmFit)
 
 Let's plot hits against wins as that field should highest correlation.
 
-```{r echo = FALSE, message=FALSE}
+```{r}
 lmFitH <- lm(TARGET_WINS ~ TEAM_BATTING_H)
 ggplot(mbTrain, aes(x= TEAM_BATTING_H, y = TARGET_WINS)) + 
     geom_point() + 
@@ -552,7 +588,7 @@ ggplot(mbTrain, aes(x= TEAM_BATTING_H, y = TARGET_WINS)) +
 ```
 Plot Residuals
 
-```{r echo = FALSE, message=FALSE}
+```{r}
 #vs index
 ggplot(lmFitH, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
 #vs fitted value
