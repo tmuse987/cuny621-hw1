@@ -19,7 +19,7 @@ library(MASS)
 library(psych)
 library(kableExtra)
 
-#setwd("l:/school/cuny/621/hw1")
+
 mbTrain <- read.csv("moneyball-training-data.csv")
 mbEval <- read.csv("moneyball-evaluation-data.csv")
 
@@ -113,7 +113,7 @@ Looking at correlation of variables to number of wins provides some interesting 
 Regardless, we can use some of these correlations to drive initial models later, in terms of likely fields to choose for an effective model.
 
 ```{r echo = FALSE, message=FALSE}
-cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
+cor(mbTrain$TARGET_WINS, mbTrain[-c(1)], use="na.or.complete")
 ```
 
 
@@ -359,45 +359,37 @@ ggplot(hits_NOHR_Mod, aes(x= .fitted, y= .resid)) +geom_point()
 
 
 ```
+##Model with Hits without Home Runs, BB's and Errors
+
+This model uses batting hits without homeruns, base batting on balls and fielding errors.
+PlotS look good except for short tailed issues in the QQ plot.  The residuals are normal and there is no trend in the residual scatter plot or unusual skewness--the values look random.
+
 
 ```{r echo = FALSE, message=FALSE}
 #making a new column with the addition of these 3 doesn't work well, should be seperated in the model
 #train$HITS_BB_ERR_NOHR <- HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E
 
-hitsNoHR_bb_e_mod <- lm(TARGET_WINS~ HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E,train)
-summary(hitsNoHR_bb_e_mod)
-plot((HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
-abline(hitsNoHR_bb_e_mod)
-hist(hitsNoHR_bb_e_mod$residuals)
-qqnorm(hitsNoHR_bb_e_mod$residuals)
-qqline(hitsNoHR_bb_e_mod$residuals)
-ggplot(hitsNoHR_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
-```
-Best in terms of residuals and Rsquared
-Hits, BB, and Fielding Errors.  Plost look good except for short tailed issues in the QQ plot.
-
-```{r echo = FALSE, message=FALSE}
-
-
-#making a new column with the addition of these 3 doesn't work well, should be seperated in the model
-#train$HITS_BB_ERR_NOHR <- TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E
-
-hits_bb_e_mod <- lm(TARGET_WINS~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E, train)
-summary(hits_bb_e_mod)
-plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
-abline(hits_bb_e_mod)
-hist(hits_bb_e_mod$residuals)
-qqnorm(hits_bb_e_mod$residuals)
-qqline(hits_bb_e_mod$residuals)
-ggplot(hits_bb_e_mod, aes(x= .fitted, y= .resid)) +geom_point()
+hits_bb_e_mod_BC <- lm(TARGET_WINS~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E,train)
+summary(hits_bb_e_mod_BC)
+#need to fix this plot still
+ggplot(train, aes(x = (TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), y = TARGET_WINS)) +
+    geom_point() + 
+    geom_smooth(aes(y=predict(hits_bb_e_mod_BC)))
+hist(hits_bb_e_mod_BC$residuals)
+qqnorm(hits_bb_e_mod_BC$residuals)
+qqline(hits_bb_e_mod_BC$residuals)
+ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
-## CoxBox Model
+
+
+##BoxCox Model
 
 Attempt at boxcox, didn't achieve better results in R squared (not SE not directly comparable due to adjustment with boxcox)  The QQ plot seems to look a bit better as the negative quantiles are much closer to the line.
 Box Cox
 ```{r echo = FALSE, message=FALSE}
-boxcox(hits_bb_e_mod, lambda = seq(1.2,1.45, 0.05))
+hits_bb_e_mod_BC <- lm(TARGET_WINS~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E,train)
+boxcox(hits_bb_e_mod_BC, lambda = seq(1.2,1.45, 0.05))
 lambda <- 1.33
 TARGET_WINS_BC <- ((TARGET_WINS^lambda)-1)/lambda
 TEAM_BATTING_H_BC <- ((TEAM_BATTING_H^lambda)-1)/lambda
@@ -406,24 +398,55 @@ TEAM_FIELDING_E_BC <- ((TEAM_FIELDING_E^lambda)-1)/lambda
 #hits_bb_e_mod_BC <- lm(TARGET_WINS_BC ~ TEAM_BATTING_H_BC + TEAM_BATTING_BB_BC + TEAM_FIELDING_E_BC)
 hits_bb_e_mod_BC <- lm(TARGET_WINS_BC ~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E)
 summary(hits_bb_e_mod_BC)
-#plot((TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), train$TARGET_WINS)
-#abline(hits_bb_e_mod_bc)
+ggplot(train, aes(x = (TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_FIELDING_E), y = TARGET_WINS)) +
+    geom_point() + 
+    geom_smooth(aes(y=predict(hits_bb_e_mod_BC)))
 hist(hits_bb_e_mod_BC$residuals)
 qqnorm(hits_bb_e_mod_BC$residuals)
 qqline(hits_bb_e_mod_BC$residuals)
 ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
+##Run against Test DataSet
+
+We developed models against the "Train" dataset (a random 80% from the entire training csv file), and now let's run against the "test" dataset (being hte other 20%).  We see comparatively similar results, with the model we picked originally (Hits without hr's, BB's, and errors) performing best.
+
+Batting:
+
+```{R}
+attach(test)
+bat_mod<-lm(TARGET_WINS~TEAM_BATTING_H,test)
+summary(bat_mod)
+```
+Pitching
+```{r}
+
+pitch_mod<-lm(TARGET_WINS~TEAM_PITCHING_H+TEAM_PITCHING_HR,test)
+summary(pitch_mod)
+```
+
+Hits Without HomeRuns
+```{r}
+test$HITS_NOHR <- test$TEAM_BATTING_H - test$TEAM_BATTING_HR
+hits_NOHR_Mod <- lm(TARGET_WINS ~ HITS_NOHR, test)
+summary(hits_NOHR_Mod)
+```
+Hits (no HR's), BB, Errors:
+```{r}
+hitsNoHR_bb_e_mod <- lm(TARGET_WINS~ HITS_NOHR + TEAM_BATTING_BB + TEAM_FIELDING_E,test)
+summary(hitsNoHR_bb_e_mod)
+
+```
 
 # SELECT MODELS
 ## Compare Model Statistics
 
-| Metric    | Batting Model | Pitching Model  | BoxCox Model  | 
-| --------- | ------------- | --------------  | ------------  |  
-| RSE       | 14.40         | 15.20           | 57.99         | 
-| R^2       | 0.1646        | 0.06883         | 0.2317        |
-| Adj. R^2  | 0.1642        | 0.06781         | 0.2305        |
-| F Stat.   | 358.2         | 67.16           | 182.6         |
+| Metric    | Batting Model | Pitching Model  |Hits BB Errors Model | BoxCox Model  | 
+| --------- | ------------- | --------------  | ------------------- | ------------- | 
+| RSE       | 14.40         | 15.20           |     13.77           |   57.99       | 
+| R^2       | 0.1646        | 0.06883         |     0.237           |   0.2317      |
+| Adj. R^2  | 0.1642        | 0.06781         |     0.2357          |   0.2305      |
+| F Stat.   | 358.2         | 67.16           |     188             |   182.6       |
 
 
 ## Pick the best regression model
