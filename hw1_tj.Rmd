@@ -2,7 +2,9 @@
 title: "Data 621 - Homework 1"
 author: "Tommy Jenkins, Violeta Stoyanova, Todd Weigel, Peter Kowalchuk"
 date: "September, 2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -139,15 +141,15 @@ library(tidyverse)
 library(ggplot2)
 theme_set(theme_classic())
 
-
+mbtrain_labels <- c("Number of wins", "Base Hits by batters (1B,2B,3B,HR) Positive Impact on Wins", "Doubles by batters (2B) Positive Impact on Wins", "Triples by batters (3B) Positive Impact on Wins", "Homeruns by batters (4B) Positive Impact on Wins", "Walks by batters Positive Impact on Wins", "Batters hit by pitch (get a free base) Positive Impact on Wins", "Strikeouts by batters Negative Impact on Wins", "Stolen bases Positive Impact on Wins", "Caught stealing Negative Impact on Wins", "Errors Negative Impact on Wins", "Double Plays Positive Impact on Wins", "Walks allowed Negative Impact on Wins", "Hits allowed Negative Impact on Wins", "Homeruns allowed Negative Impact on Wins", "Strikeouts by pitchers Positive Impact on Wins")
 attach(mbTrain)
-ggplot(gather(mbTrain), aes(value, fill=c('pink'))) +  
+ggplot(gather(mbTrain), aes(value, fill=factor(TOT))) +  
   geom_histogram(bins = 20) + 
-  facet_wrap(~key, scales = "free_x") + 
-  theme(axis.text.x = element_text(angle=65, vjust=.6)) + 
-  labs(title="Histogram on Categorical Variable")
+  facet_wrap(~key, scales = "free_x") #+ 
+ # theme(axis.text.x = element_text(angle=10, vjust=.6)) + 
+ # labs(title="Histogram on Categorical Variable") +
+ # xlabs(mbtrain_labels) 
   
-
 
 
 
@@ -701,18 +703,34 @@ cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
 
 Do some basic plots to start looking at data:
 
-```{r echo = FALSE, message=FALSE}
+```{r echo = TRUE, message=FALSE}
+
+theme_set(theme_classic())
+
 attach(mbTrain)
-ggplot(mbTrain, aes(y=TEAM_BATTING_H, x= 1)) + geom_boxplot()
-boxplot(TARGET_WINS)
+a <- ggplot(mbTrain, aes(y=TEAM_BATTING_H, x= 1, fill=TEAM_BATTING_H, color=TEAM_BATTING_H)) + geom_boxplot() + scale_fill_continuous()
+ 
+b <- ggplot(mbTrain, aes(y=TARGET_WINS, x= 1)) + geom_boxplot() + scale_fill_continuous()
+
+b <- qplot(x=1, y=TARGET_WINS, data = mbTrain, 
+      geom=c("boxplot"), fill = 1)
+#geom_boxplot(TARGET_WINS) 
+#boxplot(TARGET_WINS)
 #note appears reasonably normally distributed
-ggplot() + geom_histogram(aes(x = TARGET_WINS))
-ggplot() + geom_histogram(aes(x = TEAM_BATTING_H))
+#c <- ggplot() + geom_histogram(aes(x = TARGET_WINS)) 
+#d <- ggplot() + geom_histogram(aes(x = TEAM_BATTING_H)) + scale_x_continuous()
+c<-qplot(x =TEAM_BATTING_H, fill=..count.., geom="histogram") 
+c
 
-
-ggplot(gather(mbTrain), aes(value)) +
+d<-qplot(x =TARGET_WINS, fill=..count.., geom="histogram") 
+d
+e <- ggplot(gather(mbTrain), aes(value)) +
     geom_histogram(bins = 20) +
     facet_wrap(~key, scales = "free_x")
+
+require(gridExtra) 
+grid.arrange(a, b, ncol=2) 
+grid.arrange(c, d, ncol=2) 
 
 ```
 
@@ -736,12 +754,28 @@ ggplot(mbTrain, aes(x= TEAM_BATTING_H, y = TARGET_WINS)) +
 ```
 Plot Residuals
 
-```{r echo = FALSE, message=FALSE}
+```{r echo = TRUE, message=FALSE}
 #vs index
 ggplot(lmFitH, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
 #vs fitted value
 ggplot(lmFitH, aes(x= .fitted, y= .resid)) +geom_point()
-```
+
+
+
+
+#install.packages('lindia')
+library('lindia')
+library(MASS) 
+# a regression with categorical variable
+cars_lm <- lm(TARGET_WINS ~ TEAM_BATTING_H + TEAM_BATTING_HR, data = mbTrain)
+gg_diagnose(cars_lm)
+# customize which diagnostic plot is included
+plots <- gg_diagnose(cars_lm, plot.all = FALSE)
+names(plots)     # get name of the plots
+exclude_plots <- plots[-c(1, 3) ]    #exclude certain diagnostics plots
+include_plots <- plots[c(1, 3)]      # include certain diagnostics plots
+plot_all(exclude_plots)              # make use of plot_all() in lindia
+plot_all(include_plots)
 
 
 
