@@ -105,6 +105,83 @@ ggplot(gather(mbTrain[,-1]), aes(value)) +
 
 The plot of distributions does show fairly uniform data, but it also show the potential presence of outliers in at least two of the predictors. This is not the best way to vizualise ouliers. Instead we identify the predictors which seem to have outliers by looking at the scattered and box plots. Two variables with outliers appear to be TEAM_PITCHING_H, TEAM_PITCHING_SO, TEAM_PITCHING_BB and TEAM_FIELDING_E. We highlight these variables from the desity plots since we can see most of the data concentrated at the lower end of the scales which show tailing off to high values. 
 
+**TEAM_PITCHING_H**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_H)
+boxplot(mbTrain$TEAM_PITCHING_H)
+summary(mbTrain$TEAM_PITCHING_H)
+max<-summary(mbTrain$TEAM_PITCHING_H)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_H)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_H)[4]-summary(mbTrain$TEAM_PITCHING_H)[3]),0)
+```
+
+From the summary for this variable we see that the maximum is `r max`, which is substantially far from the median of `r median`. We can also see a wide spread between mean and median of `r spread`. But we know the maximum is not a realistic number. We can compare the numbers of pitching hits, to the number of batting hits, summary for which is shown below:
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_H)
+maxb<-summary(mbTrain$TEAM_BATTING_H)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_H)[4]-summary(mbTrain$TEAM_BATTING_H)[3]),0)
+```
+
+For batting the maximum is `r maxb`, much lower than `r max`. We expect these two variables to somewhat equal values since one is the reciprocal of the other. As a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_PITCHING_SO**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_SO)
+boxplot(mbTrain$TEAM_PITCHING_SO)
+summary(mbTrain$TEAM_PITCHING_SO)
+max<-summary(mbTrain$TEAM_PITCHING_SO)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_SO)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_SO)[4]-summary(mbTrain$TEAM_PITCHING_SO)[3]),0)
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing against it confirms the outliers.
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_SO)
+maxb<-summary(mbTrain$TEAM_BATTING_SO)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_SO)[3]-summary(mbTrain$TEAM_BATTING_SO)[4]),1)
+```
+
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_PITCHING_BB**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_PITCHING_BB)
+boxplot(mbTrain$TEAM_PITCHING_BB)
+summary(mbTrain$TEAM_PITCHING_BB)
+max<-summary(mbTrain$TEAM_PITCHING_BB)[6]
+median<-round(summary(mbTrain$TEAM_PITCHING_BB)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_PITCHING_BB)[4]-summary(mbTrain$TEAM_PITCHING_BB)[3]),0)
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. Again this variable has a reciprocal in TEAM_BATTING_SO. Comparing against it confirms the outliers.
+
+```{r echo=FALSE,message=FALSE}
+summary(mbTrain$TEAM_BATTING_BB)
+maxb<-summary(mbTrain$TEAM_BATTING_BB)[6]
+spreadb<-round(as.numeric(summary(mbTrain$TEAM_BATTING_BB)[3]-summary(mbTrain$TEAM_BATTING_BB)[4]),1)
+```
+
+We see that or batting the maximum is `r maxb`, much lower than `r max`. As before as a sanity check of the distribution of the batting variable, we now see the mean and median much closer together with a spread of only `r spreadb`.
+
+**TEAM_FIELDING_E**
+
+```{r echo=FALSE,message=FALSE}
+plot(mbTrain$TEAM_FIELDING_E)
+boxplot(mbTrain$TEAM_FIELDING_E)
+summary(mbTrain$TEAM_FIELDING_E)
+max<-summary(mbTrain$TEAM_FIELDING_E)[6]
+median<-round(summary(mbTrain$TEAM_FIELDING_E)[3],1)
+spread<-round(as.numeric(summary(mbTrain$TEAM_FIELDING_E)[4]-summary(mbTrain$TEAM_FIELDING_E)[3]),0)
+
+```
+
+Again looking at the maximum we find it is unreasonably high at `r max`, which again is substantially far from the median of `r median`. 
+
 
 ## Correlation Plot
 
@@ -410,7 +487,7 @@ ggplot(hits_bb_e_mod_BC, aes(x= .fitted, y= .resid)) +geom_point()
 
 ##Run against Test DataSet
 
-We developed models against the "Train" dataset (a random 80% from the entire training csv file), and now let's run against the "test" dataset (being hte other 20%).  We see comparatively similar results, with the model we picked originally (Hits without hr's, BB's, and errors) performing best.
+We developed models against the "Train" dataset (a random 80% from the entire training csv file), and now let's run against the "test" dataset (being the other 20%).  We see comparatively similar results in this cross validation of our models, with the model we picked originally (Hits without hr's, BB's, and errors) performing best.
 
 Batting:
 
@@ -450,24 +527,34 @@ summary(hitsNoHR_bb_e_mod)
 | F Stat.   | 358.2         | 67.16           |     188             |   182.6       |
 
 
-When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significat, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A CoxBox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%
+When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significant, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A CoxBox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%.
 
-Residual plots were performed for all models and in general results were fairly similar. 
+Important to note is the fact that the RSE for the transformation CoxBox model can't really be used as a comparison with other models. this is because the underlaying variables have been changed or transformed in the process.
+
+Residual plots were performed for all models and in general results were fairly similar and didn't have as much effect in selecting a model, but were useful in validating models. 
 
 ## Pick the best regression model
 
-The chosen regresion model was the Batting and Fielding Errors Model. It was the model with the highest acheived R and adjusted R square. It was chosen over the CoxBox transformation model because it is a simpler model. A plot of predicted test data was plotted agaisnt real test data to understand how well the model performs. 
+The chosen regression model was the Batting and Fielding Errors Model. It was the model with the highest achieved R and adjusted R square. It was chosen over the CoxBox transformation model because it is a simpler model. A plot of predicted test data was plotted against real test data to understand how well the model performs. If the model were perfect, all point would fall on the plotted line, that is predicted and true values would be the same.
 
 ```{r echo = FALSE, message=FALSE}
 p<-predict(hits_bb_e_mod,test)
 plot(test$TARGET_WINS,p)
+abline(0,1)
 ```
 
 
 ## Conclusion
 
-```{r}
-write.csv(p,"predicted_test_values.csv")
+In general all models generated in the analysis explained rather small amounts of the variation of the output Target_WINS variables. The transformation model showed the highest, but simpler models also explained about the same amount of variation of the TARGET_WINS data. One of these simpler models was selected over the transformation, mainly becouse of its simplicity.
+
+The model selected was generated using 80% of the training dataset. The remaining 20% was also used in cross validation to generate a similar model using the same predictor variables. Both models showed similar results, with the R square of the 20% data actually showing slightly higher. This is a good indication of lack of bias in the model, that is overfitting the model to the dataset given since a similar model was generated using different data.
+
+Selected model was used to predict TARGET_WINS values from data in Evaluation data file, results were written to a csv file: predicted_eval_values.csv
+
+```{r echo = FALSE, message=FALSE}
+eval_p<-predict(hits_bb_e_mod,mbEval)
+write.csv(p,"predicted_eval_values.csv")
 ```
 
 
@@ -539,24 +626,10 @@ sum(mbTrain$TEAM_FIELDING_E > 1600)
 ```
 
 Now that we have identified them, let's replace all these values
-```{r echo = FALSE, message=FALSE}
-mbTrain$TEAM_PITCHING_H[mbTrain$TEAM_PITCHING_H >3000] <- 0
-mbTrain$TEAM_PITCHING_BB[mbTrain$TEAM_PITCHING_BB >1200] <- 0
-mbTrain$TEAM_PITCHING_SO[mbTrain$TEAM_PITCHING_SO >1800] <- 0
-mbTrain$TEAM_FIELDING_E[mbTrain$TEAM_FIELDING_E >1600] <- 0
+```{r}
+mbTrain$TEAM_PITCHING_H[mbTrain$TEAM_PITCHING_H>max(mbTrain$TEAM_BATTING_H)] <- median(mbTrain$TEAM_PITCHING_H, na.rm=TRUE)
+mbTrain$TEAM_PITCHING_SO[mbTrain$TEAM_PITCHING_SO>max(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
 ```
-Now lets replace all zeros, plus the -1's we had put in earlier for for the na's.
-
-We will use median for those values.
-
-```{r echo = FALSE, message=FALSE}
-for(i in 2:ncol(mbTrain))
-{
-    idx <- mbTrain[i]<=0
-    mbTrain[i][idx] <- median(mbTrain[[i]])
-}
-```
-
 
 Do some correlation
 ```{r echo = FALSE, message=FALSE}
@@ -565,7 +638,7 @@ cor(mbTrain$TARGET_WINS, mbTrain[-c(1)])
 
 Do some basic plots to start looking at data:
 
-```{r echo = FALSE, message=FALSE}
+```{r}
 attach(mbTrain)
 ggplot(mbTrain, aes(y=TEAM_BATTING_H, x= 1)) + geom_boxplot()
 boxplot(TARGET_WINS)
@@ -579,7 +652,7 @@ ggplot(gather(mbTrain), aes(value)) +
 
 Fit a couple really simple models just to explore, one with everything, one with just home runs against wins.
 
-```{r echo = FALSE, message=FALSE}
+```{r}
 lmFit <- lm(TARGET_WINS ~., data = mbTrain)
 summary(lmFit)
 lmFit <- lm(TARGET_WINS ~ TEAM_BATTING_HR, data = mbTrain)
@@ -603,7 +676,3 @@ ggplot(lmFitH, aes(x= seq(1:nrow(mbTrain)), y= .resid)) +geom_point()
 ggplot(lmFitH, aes(x= .fitted, y= .resid)) +geom_point()
 ```
 
-
-```{r}
-
-```
