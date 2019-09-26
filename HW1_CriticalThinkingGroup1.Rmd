@@ -87,21 +87,20 @@ kable(mbd1, "html", escape = F) %>%
 
 
 #install.packages('lemon')
-library(lemon)
-knit_print.data.frame <- lemon_print
+# library(lemon)
+# knit_print.data.frame <- lemon_print
 #sapply(mbTrain, function(x) sum(is.na(x)))
 sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 #as.matrix(missing[missing>0])
 #install.packages('superheat')
-library(superheat)
+#library(superheat)
 
-superheat(mbTrain[colSums(is.na(mbTrain)) > 0],
-          # scale the matrix
-          scale = T,
-          heat.na.col = "white")
+# superheat(mbTrain[colSums(is.na(mbTrain)) > 0],
+#           # scale the matrix
+#           scale = T,
+#           heat.na.col = "white")
 
-```
-```{r}
+
 #install.packages("naniar")
 library(naniar)
 
