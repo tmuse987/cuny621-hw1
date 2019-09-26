@@ -86,6 +86,29 @@ kable(mbd1, "html", escape = F) %>%
   column_spec(1, bold = T) %>%
   scroll_box(width = "100%", height = "500px")
 ```
+```{r}
+#install.packages('lemon')
+library(lemon)
+knit_print.data.frame <- lemon_print
+#sapply(mbTrain, function(x) sum(is.na(x)))
+sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
+#as.matrix(missing[missing>0])
+#install.packages('superheat')
+library(superheat)
+
+superheat(mbTrain[colSums(is.na(mbTrain)) > 0],
+          # scale the matrix
+          scale = T,
+          heat.na.col = "white")
+
+```
+```{r}
+#install.packages("naniar")
+library(naniar)
+
+vis_miss(mbTrain)
+gg_miss_upset(mbTrain)
+```
 
 
 ## Missing and Invalid Data
@@ -193,6 +216,9 @@ Regardless, we can use some of these correlations to drive initial models later,
 cor(mbTrain$TARGET_WINS, mbTrain[-c(1)], use="na.or.complete")
 ```
 
+```{r}
+corrplot::corrplot(cor(mbTrain[,1:9]), method='square')
+```
 
 
 # DATA PREPARATION
