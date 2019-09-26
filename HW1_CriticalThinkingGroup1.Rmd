@@ -84,8 +84,8 @@ kable(mbd1, "html", escape = F) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = T) %>%
   column_spec(1, bold = T) %>%
   scroll_box(width = "100%", height = "500px")
-```
-```{r}
+
+
 #install.packages('lemon')
 library(lemon)
 knit_print.data.frame <- lemon_print
@@ -554,13 +554,13 @@ summary(hitsNoHR_bb_e_mod)
 
 When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significant, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A BoxCox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%.
 
-Important to note is the fact that the RSE for the transformation CoxBox model can't really be used as a comparison with other models. this is because the underlaying variables have been changed or transformed in the process.
+Important to note is the fact that the RSE for the transformation BoxCox model can't really be used as a comparison with other models. this is because the underlaying variables have been changed or transformed in the process.
 
 Residual plots were performed for all models and in general results were fairly similar and didn't have as much effect in selecting a model, but were useful in validating models. 
 
 ## Pick the best regression model
 
-The chosen regression model was the Batting and Fielding Errors Model. It was the model with the highest achieved R and adjusted R square. It was chosen over the CoxBox transformation model because it is a simpler model. A plot of predicted test data was plotted against real test data to understand how well the model performs. If the model were perfect, all point would fall on the plotted line, that is predicted and true values would be the same.
+The chosen regression model was the Batting and Fielding Errors Model. It was the model with the highest achieved R and adjusted R square. It was chosen over the BoxCox transformation model because it is a simpler model. A plot of predicted test data was plotted against real test data to understand how well the model performs. If the model were perfect, all point would fall on the plotted line, that is predicted and true values would be the same.
 
 ```{r echo = FALSE, message=FALSE}
 p<-predict(hits_bb_e_mod,test)
