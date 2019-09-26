@@ -1,15 +1,14 @@
 ---
-title: "Data 621 Homework 1: Moneyball"
+title: 'Data 621 Homework 1: Moneyball'
 author: "Tommy Jenkins, Violeta Stoyanova, Todd Weigel, Peter Kowalchuk, Eleanor R-Secoquian"
 date: "September, 2019"
-output: 
+output:
   html_document:
+    number_sections: yes
     theme: paper
-    toc: true
-    toc_depth: 2
-    toc_float: true
-    number_sections: true
-
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
 ---
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -46,7 +45,7 @@ mbd1 <- mbd1[-1,]
 ```
 
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 colsTrain<-ncol(mbTrain)
 colsEval<-ncol(mbEval)
 missingCol<-colnames(mbTrain)[!(colnames(mbTrain) %in% colnames(mbEval))]
@@ -54,7 +53,7 @@ missingCol<-colnames(mbTrain)[!(colnames(mbTrain) %in% colnames(mbEval))]
 
 The dataset consists of two data files: training and evaluation. The training dataset contains `r colsTrain` columns, while the evaluation dataset contains `r colsEval`. The evaluation dataset is missing column `r missingCol`. We will start by exploring the training data set since it will be the one used to generate the regression model.
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 text<-"a test"
 if(all(apply(mbTrain,2,function(x) is.numeric(x)))==TRUE) {
   text<-"all data is numeric"
@@ -66,7 +65,7 @@ maxMeanMedianDiff<-round(max(abs(sapply(mbTrain, median, na.rm = T) - sapply(mbT
 
 First we see that `r text`. 
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 nas<-as.data.frame(sapply(mbTrain, function(x) sum(is.na(x))))
 nasp<-as.data.frame(sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1)))
 colnames(nas)<-c("name")
@@ -77,7 +76,7 @@ percent<-round(maxna/nrow(mbTrain)*100,1)
 
 An important aspect of any dataset is to determine how much, if any, data is missing. We look at all the variables to see which if any have missing data. We look at the basic descriptive statistics as well as the missing data and their percentages:
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 #sapply(mbTrain, function(x) sum(is.na(x)))
 #sapply(mbTrain, function(x) round(sum(is.na(x))/nrow(mbTrain)*100,1))
 kable(mbd1, "html", escape = F) %>%
@@ -216,7 +215,7 @@ Regardless, we can use some of these correlations to drive initial models later,
 cor(mbTrain$TARGET_WINS, mbTrain[-c(1)], use="na.or.complete")
 ```
 
-```{r}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 corrplot::corrplot(cor(mbTrain[,1:9]), method='square')
 ```
 
@@ -227,7 +226,7 @@ corrplot::corrplot(cor(mbTrain[,1:9]), method='square')
 
 First task under data preparation will be to eliminate all missing data. In the Data Exploration section we found one variable, `r maxnaname` with an exceptionaly high percentage of missing data, so we commence by eliminating this variable.  We also removed the "INDEX" column as that is not used.
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 mbTrain <- mbTrain[, -which(names(mbTrain) %in% c("INDEX", maxnaname))]
 ```
 
@@ -235,7 +234,7 @@ Next task is to handle missing data in the other variables. Here, because the pe
 
 Note, we also consider zeros to be missing data.  Since each row is a season of data for a given baseball team, it would be extraordinarily unlikely that any of these statistics would have zero as an actual value.  Therefore we are assuming zero is another indicator of missing value and we will transform them into a median value.
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 
 for(i in 2:ncol(mbTrain))
 {
@@ -249,7 +248,7 @@ In the exploratory phase we also identified several variables with outliers. Out
 
 **TEAM_PITCHING_H**
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 mbTrain$TEAM_PITCHING_H[mbTrain$TEAM_PITCHING_H>max(mbTrain$TEAM_BATTING_H)] <- median(mbTrain$TEAM_PITCHING_H, na.rm=TRUE)
 
 plot(mbTrain$TEAM_PITCHING_H)
@@ -265,7 +264,7 @@ From the summary we now see that the maximum is `r max`, which is a much more re
 
 **TEAM_PITCHING_SO**
 
-```{r echo=FALSE}
+```{r echo=FALSE,message=FALSE,warning=FALSE}
 mbTrain$TEAM_PITCHING_SO[mbTrain$TEAM_PITCHING_SO>max(mbTrain$TEAM_BATTING_SO)] <- median(mbTrain$TEAM_PITCHING_SO, na.rm=TRUE)
 
 plot(mbTrain$TEAM_PITCHING_SO)
@@ -553,7 +552,7 @@ summary(hitsNoHR_bb_e_mod)
 | F Stat.   | 358.2         | 67.16           |     188             |   182.6       |
 
 
-When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significant, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A CoxBox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%.
+When comparing models we can see how they all describe a rather small amount of the variation of the output data TARGET_WINS. Although all model calculated were statistically significant, showing small p-values for the F statistic, the majority of them showed R squared and adjusted R squared of less than 20%. This included models using the calculated variables added to the dataset. A BoxCox transformation was also performed in an attempt to generate a better model, but while its results of around 23% was higher than most models, at least one simpler model was found to have an equal R square of ~23%.
 
 Important to note is the fact that the RSE for the transformation CoxBox model can't really be used as a comparison with other models. this is because the underlaying variables have been changed or transformed in the process.
 
